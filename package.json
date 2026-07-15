@@ -1,0 +1,18 @@
+{
+  "name": "pi-dailylog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Obsidian 일일 업무일지를 만들고 기록하는 pi 확장 (순수 로컬, 외부 API 없음)",
+  "type": "module",
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types test/run.ts"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typescript": "^5.6.0"
+  }
+}
