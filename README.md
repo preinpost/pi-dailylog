@@ -28,18 +28,21 @@ Obsidian에 **일일 업무일지**를 만들고 기록하는 [pi](https://pi.de
 덮어쓸 수 있다. vault 위치를 옮길 때는 `basePath`(필요하면 `companyFolder`/`logFolder`)만
 바꾸면 된다.
 
-## pi에 등록
+## 설치
 
-`~/.pi/agent/settings.json`의 `extensions`에 진입 파일 절대경로를 추가:
+pi 패키지로 설치한다.
 
-```json
-{
-  "extensions": ["/path/to/pi-dailylog/src/index.ts"]
-}
+```bash
+# git 저장소에서
+pi install git:github.com/<user>/pi-dailylog
+
+# 또는 로컬 경로에서 (개발 중)
+pi install /path/to/pi-dailylog
 ```
 
-TUI에서 `/reload`로 즉시 반영된다. (npm 설치 불필요 — 런타임은 pi가 제공하는 `typebox`와
-Node 내장 모듈만 쓰고, pi 타입은 타입 전용 import라 실행 시 제거된다.)
+설치하면 `~/.pi/agent/settings.json`의 `packages`에 추가되고 `pi list`에 표시된다.
+TUI에서 `/reload`로 즉시 반영된다. (런타임은 pi가 제공하는 `typebox`와 Node 내장
+모듈만 쓰고, pi 타입은 타입 전용 import라 실행 시 제거된다 — 별도 npm 설치 불필요.)
 
 ## 사용법
 
