@@ -56,5 +56,19 @@ const imp = createDaily(cfg2, new Date("2026-07-15T12:00:00"), true);
 eq("import-plan importedPlan=true", imp.importedPlan, true);
 eq("import-plan 내용 이월", existsSync(imp.path) && readFileSync(imp.path, "utf8").includes("이월 계획 A"), true);
 
+// 섹션 헤더(템플릿) 재정의
+const VAULT3 = "/tmp/pi-dailylog-test3";
+const cfg3: DlConfig = {
+	...cfg,
+	basePath: VAULT3,
+	sections: { done: "Today", plan: "This Week" },
+};
+rmSync(VAULT3, { recursive: true, force: true });
+const t3 = new Date("2026-07-15T12:00:00");
+addItems(cfg3, t3, "done", ["custom header 확인"]);
+const out3 = readFileSync(dailyPath(cfg3, t3), "utf8");
+eq("섹션 헤더 재정의(done→Today)", out3.includes("## Today\n* custom header 확인"), true);
+eq("미재정의 헤더는 기본값(retro=회고)", out3.includes("## 회고"), true);
+
 console.log(failed ? `\n${failed}개 실패` : "\n모든 테스트 통과");
 process.exit(failed ? 1 : 0);

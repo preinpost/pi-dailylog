@@ -60,14 +60,26 @@ TUI에서 `/reload`로 즉시 반영된다. 런타임은 pi가 제공하는 `typ
 
 ## 설정
 
-저장소 루트에 `config.json`을 만든다(`config.example.json` 복사). 이 파일은 `.gitignore`에
-들어 있어 커밋되지 않는다.
+설정 파일은 아래 순서로 탐색해 **먼저 존재하는 것**을 쓴다.
+
+1. 환경변수 `DAILYLOG_CONFIG` (명시적 JSON 파일 경로)
+2. **`~/.pi/agent/dailylog.json`** ← 설치해서 쓰는 사용자는 여기 만들면 된다 (패키지 밖이라
+   `pi update` 후에도 유지된다)
+3. 저장소 루트의 `config.json` ← 로컬에서 개발할 때만 (`.gitignore`로 커밋 제외)
+
+`config.example.json`을 복사해 만든다.
 
 ```json
 {
   "basePath": "/path/to/your/obsidian-vault",
   "companyFolder": "00. 🏢 회사",
-  "logFolder": "00_업무일지"
+  "logFolder": "00_업무일지",
+  "sections": {
+    "done": "일일 진행 업무",
+    "plan": "주간 업무 계획",
+    "retro": "회고",
+    "memo": "메모"
+  }
 }
 ```
 
@@ -76,8 +88,11 @@ TUI에서 `/reload`로 즉시 반영된다. 런타임은 pi가 제공하는 `typ
 | `basePath` | vault 루트 경로 (**필수**) | — (환경변수 `DAILYLOG_BASE_PATH`로도 지정 가능) |
 | `companyFolder` | vault 안의 최상위 폴더명 | `00. 🏢 회사` |
 | `logFolder` | 연도 폴더 안의 업무일지 폴더명 | `00_업무일지` |
+| `sections` | 섹션 헤더 라벨 재정의(일부만 지정 가능). 새 파일 템플릿과 기록 대상 헤더에 함께 적용 | 위 기본 4개 |
 
-vault 위치를 옮길 때는 `basePath`만 바꾸면 된다.
+- **경로**를 바꾸려면 `basePath`(필요하면 `companyFolder`/`logFolder`)를 수정.
+- **템플릿**(섹션 이름)을 바꾸려면 `sections`에서 원하는 키만 덮어쓴다. 예) `"done": "Today"`.
+  지정하지 않은 키는 기본 라벨을 쓴다.
 
 ## 사용법
 

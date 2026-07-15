@@ -1,5 +1,11 @@
 {
-  "basePath": "/Users/YOUR_NAME/Documents/obsidian-sync",
+  "basePath": "/path/to/your/obsidian-vault",
   "companyFolder": "00. 🏢 회사",
-  "logFolder": "00_업무일지"
+  "logFolder": "00_업무일지",
+  "sections": {
+    "done": "일일 진행 업무",
+    "plan": "주간 업무 계획",
+    "retro": "회고",
+    "memo": "메모"
+  }
 }

@@ -9,6 +9,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -31,26 +32,46 @@ const DEFAULTS = {
 	logFolder: "00_업무일지",
 };
 
+/** 설치 사용자용 정식 설정 위치 (패키지 밖 → pi update 에도 안전) */
+const USER_CONFIG = join(homedir(), ".pi", "agent", "dailylog.json");
+/** 개발용 폴백: 저장소 루트의 config.json (git 제외) */
+const DEV_CONFIG = join(HERE, "..", "config.json");
+
+/**
+ * 설정 파일 탐색 순서 (먼저 존재하는 것 사용):
+ *   1. 환경변수 DAILYLOG_CONFIG (명시적 JSON 파일 경로)
+ *   2. ~/.pi/agent/dailylog.json  ← 설치 사용자는 여기 만들면 됨
+ *   3. 패키지 로컬 config.json     ← 개발 중에만 사용
+ */
+function configPath(): string | undefined {
+	const candidates = [process.env.DAILYLOG_CONFIG, USER_CONFIG, DEV_CONFIG];
+	return candidates.find((p): p is string => !!p && existsSync(p));
+}
+
 function loadConfig(): DlConfig {
-	const file = join(HERE, "..", "config.json");
+	const file = configPath();
 	let fromFile: Partial<DlConfig> = {};
-	if (existsSync(file)) {
+	if (file) {
 		try {
 			fromFile = JSON.parse(readFileSync(file, "utf8"));
 		} catch (e) {
-			throw new Error(`config.json 파싱 실패: ${(e as Error).message}`);
+			throw new Error(`설정 파일 파싱 실패 (${file}): ${(e as Error).message}`);
 		}
 	}
 	const basePath = process.env.DAILYLOG_BASE_PATH ?? fromFile.basePath ?? "";
 	if (!basePath) {
 		throw new Error(
-			"업무일지 base_path 미설정. config.json 의 basePath 또는 환경변수 DAILYLOG_BASE_PATH 를 설정하세요.",
+			`업무일지 basePath 미설정. 아래 중 하나를 설정하세요:\n` +
+				`  • ${USER_CONFIG} 에 {"basePath":"/path/to/vault"} 생성 (권장)\n` +
+				`  • 환경변수 DAILYLOG_BASE_PATH\n` +
+				`  • 환경변수 DAILYLOG_CONFIG 로 설정 파일 경로 지정`,
 		);
 	}
 	return {
 		basePath,
 		companyFolder: fromFile.companyFolder ?? DEFAULTS.companyFolder,
 		logFolder: fromFile.logFolder ?? DEFAULTS.logFolder,
+		sections: fromFile.sections,
 	};
 }
 

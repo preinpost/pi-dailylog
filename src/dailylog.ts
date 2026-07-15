@@ -13,6 +13,8 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 
+export type SectionKey = "done" | "plan" | "retro" | "memo";
+
 export interface DlConfig {
 	/** Obsidian vault 루트 */
 	basePath: string;
@@ -20,11 +22,11 @@ export interface DlConfig {
 	companyFolder: string;
 	/** 회사 폴더 > 연도 폴더 안의 업무일지 폴더명 */
 	logFolder: string;
+	/** (선택) 섹션 헤더 라벨 재정의 — 새 일지 템플릿과 섹션 매칭에 모두 적용 */
+	sections?: Partial<Record<SectionKey, string>>;
 }
 
-export type SectionKey = "done" | "plan" | "retro" | "memo";
-
-/** 서브커맨드/툴 섹션키 → 실제 마크다운 헤더 */
+/** 서브커맨드/툴 섹션키 → 기본 마크다운 헤더 */
 export const SECTION_HEADERS: Record<SectionKey, string> = {
 	done: "일일 진행 업무",
 	plan: "주간 업무 계획",
@@ -33,6 +35,11 @@ export const SECTION_HEADERS: Record<SectionKey, string> = {
 };
 
 const SECTION_ORDER: SectionKey[] = ["done", "plan", "retro", "memo"];
+
+/** config.sections 로 기본 헤더를 덮어쓴 최종 헤더 맵 */
+function headersOf(cfg: DlConfig): Record<SectionKey, string> {
+	return { ...SECTION_HEADERS, ...(cfg.sections ?? {}) };
+}
 
 /** 한국어 요일 (getDay: 0=일) */
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
@@ -68,9 +75,10 @@ export function dailyPath(cfg: DlConfig, d: Date): string {
 	return join(dailyDir(cfg, d), fileName(d));
 }
 
-/** 빈 템플릿 텍스트 */
-export function template(): string {
-	return SECTION_ORDER.map((k) => `## ${SECTION_HEADERS[k]}\n* `).join("\n\n") + "\n";
+/** 빈 템플릿 텍스트 (config 섹션 헤더 반영) */
+export function template(cfg: DlConfig): string {
+	const h = headersOf(cfg);
+	return SECTION_ORDER.map((k) => `## ${h[k]}\n* `).join("\n\n") + "\n";
 }
 
 // ── 파싱 / 직렬화 ────────────────────────────────────────────────
@@ -168,7 +176,7 @@ export function findPreviousPlan(cfg: DlConfig, d: Date): string[] | null {
 		const p = dailyPath(cfg, prev);
 		if (!existsSync(p)) continue;
 		const sections = parse(readFileSync(p, "utf8"));
-		const plan = sections.find((s) => s.header === SECTION_HEADERS.plan);
+		const plan = sections.find((s) => s.header === headersOf(cfg).plan);
 		if (plan && !isPlaceholderOnly(plan.body)) return plan.body;
 		return null; // 가장 최근 파일에 계획이 비었으면 굳이 더 소급하지 않음
 	}
@@ -180,12 +188,12 @@ export function createDaily(cfg: DlConfig, d: Date, importPlan = false): CreateR
 	const p = dailyPath(cfg, d);
 	if (existsSync(p)) return { path: p, created: false, importedPlan: false };
 
-	const sections = parse(template());
+	const sections = parse(template(cfg));
 	let imported = false;
 	if (importPlan) {
 		const prevPlan = findPreviousPlan(cfg, d);
 		if (prevPlan && prevPlan.length) {
-			const plan = sections.find((s) => s.header === SECTION_HEADERS.plan);
+			const plan = sections.find((s) => s.header === headersOf(cfg).plan);
 			if (plan) {
 				plan.body = prevPlan;
 				imported = true;
@@ -219,9 +227,10 @@ export function addItems(
 	const createRes = createDaily(cfg, d, false);
 	const p = createRes.path;
 
+	const header = headersOf(cfg)[section];
 	const sections = parse(readFileSync(p, "utf8"));
-	const target = sections.find((s) => s.header === SECTION_HEADERS[section]);
-	if (!target) throw new Error(`섹션을 찾을 수 없음: ${SECTION_HEADERS[section]}`);
+	const target = sections.find((s) => s.header === header);
+	if (!target) throw new Error(`섹션을 찾을 수 없음: ${header}`);
 
 	const suffix =
 		section === "plan" && priority != null ? ` (순위 : ${priority})` : "";
@@ -235,7 +244,7 @@ export function addItems(
 	writeFileSync(p, serialize(sections), "utf8");
 	return {
 		path: p,
-		section: SECTION_HEADERS[section],
+		section: header,
 		added: clean,
 		created: createRes.created,
 	};
